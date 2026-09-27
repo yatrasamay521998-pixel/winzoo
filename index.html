@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Winzaa Pro - Fixed Auth & Casino</title>
+    <title>Winzaa Pro - Working Casino</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -17,7 +16,7 @@
         .logo-area { font-weight: 900; font-size: 18px; color: #f1c40f; display: flex; align-items: center; gap: 6px; }
         .menu-toggle-btn { background: none; border: none; color: #f1c40f; font-size: 18px; cursor: pointer; }
         .header-btns { display: flex; gap: 6px; align-items: center; }
-        .header-btns button { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; border: none; }
+        .header-btns button { padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; border: none; }
         .login-btn { background: transparent; color: #fff; border: 1px solid #1abc9c; }
         .signup-btn { background: #00d2d3; color: #000; }
 
@@ -56,9 +55,13 @@
 
         .screen-view { padding: 15px; display: none; }
         .screen-view.active { display: block; }
-        .input-group { margin-bottom: 10px; text-align: left; }
+        
+        /* Modal Popups Styling */
+        .modal-box { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 400; padding: 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .modal-content { width: 100%; max-width: 400px; background: #0b2229; padding: 20px; border-radius: 10px; border: 1px solid #163842; }
+        .input-group { margin-bottom: 12px; text-align: left; }
         .input-group label { display: block; font-size: 11px; color: #aaa; margin-bottom: 3px; }
-        input, select { width: 100%; padding: 8px 10px; background: #07171c; border: 1px solid #163842; border-radius: 6px; color: #fff; font-size: 12px; outline: none; }
+        input, select { width: 100%; padding: 10px; background: #07171c; border: 1px solid #163842; border-radius: 6px; color: #fff; font-size: 13px; outline: none; }
         .primary-btn { width: 100%; padding: 10px; background: #00d2d3; color: #000; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 5px; }
         .hidden { display: none !important; }
         
@@ -77,11 +80,11 @@
                 🔥 WIZAA
             </div>
             <div class="header-btns" id="authHeaderBtns">
-                <button class="login-btn" onclick="openModal('loginModal')">Log In</button>
-                <button class="signup-btn" onclick="openModal('signupModal')">Sign Up</button>
+                <button class="login-btn" onclick="showModal('loginModal')">Log In</button>
+                <button class="signup-btn" onclick="showModal('signupModal')">Sign Up</button>
             </div>
             <div id="userWalletHeader" class="hidden" style="font-size:11px; color:#f1c40f; font-weight:bold;">
-                💰 Cash: <span id="hdrWalletBal">Rs.0</span> | 🎁 Bonus: <span id="hdrBonusBal" style="color:#2ecc71;">Rs.0</span> <span onclick="logoutUser()" style="color:#e74c3c; cursor:pointer; margin-left:4px;">[Logout]</span>
+                👤 <span id="hdrUserText">User</span> | 💰 Cash: <span id="hdrWalletBal">Rs.0</span> | 🎁 Bonus: <span id="hdrBonusBal" style="color:#2ecc71;">Rs.0</span> <span onclick="logoutUser()" style="color:#e74c3c; cursor:pointer; margin-left:4px;">[Logout]</span>
             </div>
         </div>
 
@@ -188,7 +191,7 @@
                     <h1>100% CashBack Bonus</h1>
                     <p>Deposit Rs.200, Get Rs.200 Bonus Added</p>
                 </div>
-                <button class="promo-btn-action" style="padding:6px 12px; background:#f39c12; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="openModal('depositModal')">Deposit Now</button>
+                <button class="promo-btn-action" style="padding:6px 12px; background:#f39c12; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="showModal('depositModal')">Deposit Now</button>
             </div>
         </div>
 
@@ -203,7 +206,7 @@
         <!-- SPIN SCREEN -->
         <div id="spinScreen" class="screen-view" style="text-align:center;">
             <h3 style="color:#f1c40f; margin-bottom:15px;">🎡 Lucky Fortune Wheel</h3>
-            <div style="font-size:50px; margin:15px 0;" id="spinWheelIcon">🎯</div>
+            <div style="font-size:50px; margin:15px 0;">🎯</div>
             <div style="font-size:14px; color:#2ecc71; margin-bottom:15px; font-weight:bold;" id="spinResultText">Spin karke Bonus jeetein!</div>
             <button class="primary-btn" onclick="executeLuckySpin()">SPIN NOW (FREE)</button>
         </div>
@@ -215,8 +218,8 @@
                 <p style="color:#aaa; margin-bottom:4px;">Real Cash Balance: <strong style="color:#f1c40f;" id="accCashBalance">Rs. 0</strong></p>
                 <p style="color:#aaa;">Play Bonus Balance (Non-Withdrawal): <strong style="color:#2ecc71;" id="accBonusBalance">Rs. 0</strong></p>
             </div>
-            <button class="primary-btn" style="background:#27ae60;" onclick="openModal('depositModal')">Deposit Money</button>
-            <button class="primary-btn" style="background:#e67e22; margin-top:8px;" onclick="openModal('withdrawModal')">Withdraw Money (Cash Only)</button>
+            <button class="primary-btn" style="background:#27ae60;" onclick="showModal('depositModal')">Deposit Money</button>
+            <button class="primary-btn" style="background:#e67e22; margin-top:8px;" onclick="showModal('withdrawModal')">Withdraw Money (Cash Only)</button>
             
             <div id="adminManagementDiv" class="hidden" style="margin-top:15px; border-top:1px dashed #e74c3c; padding-top:10px;">
                 <h4 style="color:#e74c3c; font-size:13px; margin-bottom:6px;">👑 Admin Control (Pending Deposits)</h4>
@@ -235,61 +238,71 @@
     </div>
 
     <!-- LOGIN MODAL -->
-    <div id="loginModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
-        <h3>Log In (Mobile ya Gmail se)</h3>
-        <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Udaharan: <b>9876543210</b> ya <b>amit@gmail.com</b></p>
-        <div class="input-group"><label>Mobile No / Gmail ID</label><input type="text" id="loginInput" placeholder="9876543210"></div>
-        <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Password"></div>
-        <button class="primary-btn" onclick="userLogin()">Login</button>
-        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('loginModal')">Close</button>
+    <div id="loginModal" class="modal-box hidden">
+        <div class="modal-content">
+            <h3>Log In (Mobile या Gmail से)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Udaharan: <b>9876543210</b> ya <b>amit@gmail.com</b></p>
+            <div class="input-group"><label>Mobile No / Gmail ID</label><input type="text" id="loginInput" placeholder="9876543210"></div>
+            <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Password"></div>
+            <button class="primary-btn" onclick="directLogin()">Login</button>
+            <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="hideModal('loginModal')">Close</button>
+        </div>
     </div>
 
     <!-- SIGNUP MODAL -->
-    <div id="signupModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
-        <h3>Sign Up (Naya Khata Banayein - ₹200 Bonus)</h3>
-        <p style="font-size:11px; color:#f1c40f; margin-bottom:10px; background:#07171c; padding:8px; border-radius:4px; border:1px solid #163842;">
-            💡 <b>Udaharan (Example):</b><br>
-            • Mobile se: <b>9876543210</b><br>
-            • Gmail se: <b>amit123@gmail.com</b>
-        </p>
-        <div class="input-group"><label>Mobile No ya Gmail ID</label><input type="text" id="signupInput" placeholder="9876543210 ya user@gmail.com"></div>
-        <div class="input-group"><label>Password Banayein</label><input type="password" id="signupPassword" placeholder="Strong password"></div>
-        <button class="primary-btn" onclick="userSignup()">Register & Get Bonus</button>
-        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('signupModal')">Close</button>
+    <div id="signupModal" class="modal-box hidden">
+        <div class="modal-content">
+            <h3>Sign Up (₹200 Welcome Bonus)</h3>
+            <p style="font-size:11px; color:#f1c40f; margin-bottom:10px; background:#07171c; padding:8px; border-radius:4px; border:1px solid #163842;">
+                💡 <b>Udaharan (Example):</b><br>
+                • Mobile se: <b>9876543210</b><br>
+                • Gmail se: <b>amit123@gmail.com</b>
+            </p>
+            <div class="input-group"><label>Mobile No या Gmail ID</label><input type="text" id="signupInput" placeholder="9876543210 ya user@gmail.com"></div>
+            <div class="input-group"><label>Password बनाएं</label><input type="password" id="signupPassword" placeholder="Strong password"></div>
+            <button class="primary-btn" onclick="directSignup()">Register & Get Bonus</button>
+            <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="hideModal('signupModal')">Close</button>
+        </div>
     </div>
 
     <!-- DEPOSIT MODAL -->
-    <div id="depositModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
-        <h3>Deposit Funds (100% Bonus Added)</h3>
-        <div class="input-group" style="margin-top:15px;"><label>Name</label><input type="text" id="depName"></div>
-        <div class="input-group"><label>Amount (e.g. 200)</label><input type="number" id="depAmt"></div>
-        <div class="input-group"><label>UPI Ref / ID</label><input type="text" id="depUpi"></div>
-        <button class="primary-btn" onclick="submitDeposit()">Submit Deposit</button>
-        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('depositModal')">Close</button>
+    <div id="depositModal" class="modal-box hidden">
+        <div class="modal-content">
+            <h3>Deposit Funds (100% Bonus)</h3>
+            <div class="input-group" style="margin-top:5px;"><label>Name</label><input type="text" id="depName"></div>
+            <div class="input-group"><label>Amount (e.g. 200)</label><input type="number" id="depAmt"></div>
+            <div class="input-group"><label>UPI Ref / ID</label><input type="text" id="depUpi"></div>
+            <button class="primary-btn" onclick="submitDeposit()">Submit Deposit</button>
+            <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="hideModal('depositModal')">Close</button>
+        </div>
     </div>
 
     <!-- WITHDRAW MODAL -->
-    <div id="withdrawModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
-        <h3>Withdraw Funds (Cash Only)</h3>
-        <div class="input-group" style="margin-top:15px;"><label>Amount (Min 200)</label><input type="number" id="withAmt"></div>
-        <div class="input-group"><label>UPI Details</label><input type="text" id="withDetails"></div>
-        <button class="primary-btn" onclick="submitWithdraw()">Request Withdraw</button>
-        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('withdrawModal')">Close</button>
+    <div id="withdrawModal" class="modal-box hidden">
+        <div class="modal-content">
+            <h3>Withdraw Funds (Cash Only)</h3>
+            <div class="input-group" style="margin-top:5px;"><label>Amount (Min 200)</label><input type="number" id="withAmt"></div>
+            <div class="input-group"><label>UPI Details</label><input type="text" id="withDetails"></div>
+            <button class="primary-btn" onclick="submitWithdraw()">Request Withdraw</button>
+            <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="hideModal('withdrawModal')">Close</button>
+        </div>
     </div>
 
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyC7TFkHZqLgjRnrZ3xm94p8nfqt3i_n0Z4",
             authDomain: "mylotteryapp-9428b.firebaseapp.com",
+            databaseURL: "https://mylotteryapp-9428b-default-rtdb.firebaseio.com",
             projectId: "mylotteryapp-9428b",
-            storageBucket: "mylotteryapp-9428b.firebasestorage.app",
+            storageBucket: "mylotteryapp-9428b.appspot.com",
             messagingSenderId: "837980081277",
             appId: "1:837980081277:web:9c1e50592c3e974b97f514"
         };
 
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
-        let currentUid = "", currentUserIdentifier = "", currentGameName = "";
+        let currentUserId = localStorage.getItem("winzaa_user_id") || "";
+        let currentUserIdentifier = localStorage.getItem("winzaa_user_identifier") || "";
         const MASTER_ADMIN = "9876543210";
 
         function toggleSidebar() {
@@ -299,7 +312,7 @@
 
         function switchTab(screenId) {
             document.querySelectorAll('.screen-view').forEach(el => {
-                if(!el.id.includes('Modal')) el.classList.remove('active');
+                el.classList.remove('active');
             });
             document.getElementById(screenId).classList.add('active');
         }
@@ -309,56 +322,88 @@
             element.classList.add('active');
         }
 
-        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
-        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
-
-        function getValidEmail(inputVal) {
-            let cleanVal = inputVal.trim();
-            if(/^\d{10}$/.test(cleanVal)) { return cleanVal + "@winzaa.phone"; }
-            return cleanVal;
+        // Updated Modal Control Functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
         }
 
-        firebase.auth().onAuthStateChanged((user) => {
-            if(user) {
-                currentUid = user.uid;
-                currentUserIdentifier = user.email.includes('@winzaa.phone') ? user.email.split('@')[0] : user.email;
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        window.onload = function() {
+            if(currentUserId) {
                 document.getElementById('authHeaderBtns').classList.add('hidden');
                 document.getElementById('userWalletHeader').classList.remove('hidden');
-                loadWallet(currentUid);
+                document.getElementById('hdrUserText').innerText = currentUserIdentifier;
+                loadWallet(currentUserId);
                 checkAdminStatus(currentUserIdentifier);
-            } else {
-                currentUid = ""; currentUserIdentifier = "";
-                document.getElementById('authHeaderBtns').classList.remove('hidden');
-                document.getElementById('userWalletHeader').classList.add('hidden');
-                document.getElementById('adminManagementDiv').classList.add('hidden');
             }
             loadWinnerAnnouncement();
-        });
+        };
 
-        function userLogin() {
-            let inputVal = document.getElementById('loginInput').value.trim();
-            let pass = document.getElementById('loginPassword').value.trim();
-            if(!inputVal || !pass) { alert('Kripya mobile number ya gmail aur password bharein!'); return; }
-            let authEmail = getValidEmail(inputVal);
-            firebase.auth().signInWithEmailAndPassword(authEmail, pass).then(() => {
-                closeModal('loginModal');
-                alert('Login safal raha!');
-            }).catch(err => alert('Login Error: ' + err.message));
-        }
-
-        function userSignup() {
+        function directSignup() {
             let inputVal = document.getElementById('signupInput').value.trim();
             let pass = document.getElementById('signupPassword').value.trim();
             if(!inputVal || !pass) { alert('Kripya mobile number ya gmail aur password bharein!'); return; }
-            let authEmail = getValidEmail(inputVal);
-            firebase.auth().createUserWithEmailAndPassword(authEmail, pass).then((res) => {
-                db.ref('wallets/' + res.user.uid).set({ cash: 0, bonus: 200, identifier: inputVal });
-                closeModal('signupModal');
-                alert('Account ban gaya! Aapko ₹200 Welcome Bonus mila hai.');
-            }).catch(err => alert('Signup Error: ' + err.message));
+
+            let safeKey = inputVal.replace(/[.#$\/\[\]]/g, "_");
+            db.ref('users/' + safeKey).once('value', (snap) => {
+                if(snap.exists()) {
+                    alert('Yeh mobile ya gmail pehle se registered hai! Login karein.');
+                } else {
+                    let newUserId = 'user_' + Date.now();
+                    db.ref('users/' + safeKey).set({
+                        uid: newUserId,
+                        identifier: inputVal,
+                        password: pass
+                    });
+                    db.ref('wallets/' + newUserId).set({
+                        cash: 0,
+                        bonus: 200,
+                        identifier: inputVal
+                    });
+                    localStorage.setItem("winzaa_user_id", newUserId);
+                    localStorage.setItem("winzaa_user_identifier", inputVal);
+                    currentUserId = newUserId;
+                    currentUserIdentifier = inputVal;
+
+                    hideModal('signupModal');
+                    alert('Account ban gaya! ₹200 Welcome Bonus mil gaya hai.');
+                    location.reload();
+                }
+            });
         }
 
-        function logoutUser() { firebase.auth().signOut(); }
+        function directLogin() {
+            let inputVal = document.getElementById('loginInput').value.trim();
+            let pass = document.getElementById('loginPassword').value.trim();
+            if(!inputVal || !pass) { alert('Kripya mobile number ya gmail aur password bharein!'); return; }
+
+            let safeKey = inputVal.replace(/[.#$\/\[\]]/g, "_");
+            db.ref('users/' + safeKey).once('value', (snap) => {
+                if(snap.exists()) {
+                    let userData = snap.val();
+                    if(userData.password === pass) {
+                        localStorage.setItem("winzaa_user_id", userData.uid);
+                        localStorage.setItem("winzaa_user_identifier", userData.identifier);
+                        hideModal('loginModal');
+                        alert('Login safal raha!');
+                        location.reload();
+                    } else {
+                        alert('Password galat hai!');
+                    }
+                } else {
+                    alert('Yeh account nahi mila! Pehle Sign Up karein.');
+                }
+            });
+        }
+
+        function logoutUser() {
+            localStorage.removeItem("winzaa_user_id");
+            localStorage.removeItem("winzaa_user_identifier");
+            location.reload();
+        }
 
         function loadWallet(uid) {
             db.ref('wallets/' + uid).on('value', (snap) => {
@@ -424,41 +469,43 @@
         }
 
         function submitDeposit() {
+            if(!currentUserId) { alert('Pehle login karein!'); showModal('loginModal'); return; }
             let name = document.getElementById('depName').value;
             let amt = Number(document.getElementById('depAmt').value);
             let upi = document.getElementById('depUpi').value;
             if(!name || !amt || !upi) { alert('Sabhi fields bharein!'); return; }
-            db.ref('depositRequests').push().set({ userId: currentUid, identifier: currentUserIdentifier, name, amount: amt, upiRef: upi });
-            alert('Deposit request bhej di gayi hai! Admin approval ke baad cash aur 100% bonus mil jayega.');
-            closeModal('depositModal');
+            db.ref('depositRequests').push().set({ userId: currentUserId, identifier: currentUserIdentifier, name, amount: amt, upiRef: upi });
+            alert('Deposit request bhej di gayi hai!');
+            hideModal('depositModal');
         }
 
         function submitWithdraw() {
+            if(!currentUserId) { alert('Pehle login karein!'); showModal('loginModal'); return; }
             let amt = Number(document.getElementById('withAmt').value);
             let details = document.getElementById('withDetails').value;
             if(amt < 200) { alert('Minimum withdrawal Rs. 200 hai!'); return; }
-            db.ref('wallets/' + currentUid).once('value', (snap) => {
+            db.ref('wallets/' + currentUserId).once('value', (snap) => {
                 let data = snap.val() || { cash: 0 };
                 let cashBal = data.cash || 0;
                 if(cashBal < amt) { alert('Real cash balance kam hai! Bonus withdraw nahi ho sakta.'); return; }
-                db.ref('wallets/' + currentUid).update({ cash: cashBal - amt });
-                db.ref('withdrawRequests').push().set({ userId: currentUid, identifier: currentUserIdentifier, amount: amt, details });
+                db.ref('wallets/' + currentUserId).update({ cash: cashBal - amt });
+                db.ref('withdrawRequests').push().set({ userId: currentUserId, identifier: currentUserIdentifier, amount: amt, details });
                 alert('Withdrawal request bhej di gayi hai!');
-                closeModal('withdrawModal');
+                hideModal('withdrawModal');
             });
         }
 
         function executeLuckySpin() {
-            if(!currentUid) { alert('Pehle login karein!'); openModal('loginModal'); return; }
+            if(!currentUserId) { alert('Pehle login karein!'); showModal('loginModal'); return; }
             
             let rewards = [50, 100, 150, 200, 500];
             let wonBonus = rewards[Math.floor(Math.random() * rewards.length)];
 
-            db.ref('wallets/' + currentUid).once('value', (snap) => {
+            db.ref('wallets/' + currentUserId).once('value', (snap) => {
                 let data = snap.val() || { cash: 0, bonus: 0 };
                 let currentBonus = data.bonus || 0;
                 
-                db.ref('wallets/' + currentUid).update({ bonus: currentBonus + wonBonus }).then(() => {
+                db.ref('wallets/' + currentUserId).update({ bonus: currentBonus + wonBonus }).then(() => {
                     document.getElementById('spinResultText').innerText = "Badhai ho! Aapne jeeta: Rs. " + wonBonus + " Bonus!";
                     alert('Spin complete! Rs. ' + wonBonus + ' Bonus aapke account me jud gaya hai.');
                 });
@@ -473,8 +520,7 @@
         }
 
         function openGameWindow(gameKey) {
-            if(!currentUid) { alert('Pehle login karein!'); openModal('loginModal'); return; }
-            currentGameName = gameKey;
+            if(!currentUserId) { alert('Pehle login karein!'); showModal('loginModal'); return; }
             document.getElementById('activeGameTitle').innerText = gameKey.toUpperCase() + " ARENA";
             document.getElementById('arenaResultDisplay').innerText = "READY TO PLAY";
             document.getElementById('arenaStatusMsg').innerText = "Place bet & click play!";
@@ -485,7 +531,7 @@
             let betAmt = Number(document.getElementById('gameBetInput').value);
             if(betAmt <= 0) { alert('Sahi bet amount dalein!'); return; }
 
-            db.ref('wallets/' + currentUid).once('value', (snap) => {
+            db.ref('wallets/' + currentUserId).once('value', (snap) => {
                 let data = snap.val() || { cash: 0, bonus: 0 };
                 let cash = data.cash || 0;
                 let bonus = data.bonus || 0;
@@ -517,7 +563,7 @@
                     document.getElementById('arenaStatusMsg').innerText = "Kismat kharab thi, agli baar jeetoge!";
                 }
 
-                db.ref('wallets/' + currentUid).update({ cash: newCash, bonus: newBonus });
+                db.ref('wallets/' + currentUserId).update({ cash: newCash, bonus: newBonus });
             });
         }
     </script>
