@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winzaa Pro - Fixed Auth & Casino</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0b1e24; color: #fff; display: flex; justify-content: center; min-height: 100vh; padding-bottom: 60px; }
+        .app-container { width: 100%; max-width: 480px; background: #0b2229; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.8); overflow-x: hidden; }
+        
+        .top-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #07171c; border-bottom: 1px solid #10333d; }
+        .logo-area { font-weight: 900; font-size: 18px; color: #f1c40f; display: flex; align-items: center; gap: 6px; }
+        .menu-toggle-btn { background: none; border: none; color: #f1c40f; font-size: 18px; cursor: pointer; }
+        .header-btns { display: flex; gap: 6px; align-items: center; }
+        .header-btns button { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; border: none; }
+        .login-btn { background: transparent; color: #fff; border: 1px solid #1abc9c; }
+        .signup-btn { background: #00d2d3; color: #000; }
+
+        .sidebar-menu { position: fixed; top: 0; left: -260px; width: 260px; height: 100%; background: #07171c; z-index: 300; transition: 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.8); border-right: 1px solid #163842; overflow-y: auto; }
+        .sidebar-menu.open { left: 0; }
+        .sidebar-header { background: #0b2229; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #163842; }
+        .sidebar-gift-card { background: linear-gradient(135deg, #10333d, #1e3c72); margin: 10px; padding: 10px; border-radius: 6px; font-size: 12px; color: #f1c40f; font-weight: bold; text-align: center; border: 1px solid #1abc9c55; }
+        .sidebar-item { padding: 12px 15px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #b0bec5; border-bottom: 1px solid #0f2933; cursor: pointer; transition: 0.2s; }
+        .sidebar-item:hover { background: #0f2933; color: #fff; }
+
+        .backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 250; display: none; }
+        .backdrop.show { display: block; }
+
+        .promo-banner { margin: 12px; background: linear-gradient(135deg, #10333d, #1e3c72); border-radius: 10px; padding: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #1abc9c55; cursor: pointer; }
+        .promo-text h3 { font-size: 15px; color: #f1c40f; margin-bottom: 2px; }
+        .promo-text h1 { font-size: 18px; color: #fff; font-weight: 800; }
+        .promo-text p { font-size: 11px; color: #1abc9c; margin-top: 2px; }
+
+        .search-box { padding: 0 12px; margin-bottom: 12px; }
+        .search-input { width: 100%; padding: 10px 15px; background: #07171c; border: 1px solid #163842; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+
+        .section-title { font-size: 13px; font-weight: bold; color: #f1c40f; margin: 15px 12px 8px 12px; }
+        
+        .games-section { padding: 0 12px; }
+        .games-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .game-card { background: #11323c; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #1a4452; transition: 0.2s; text-align: center; position: relative; }
+        .game-card:hover { transform: scale(1.03); }
+        .game-card-wide { grid-column: span 3; display: flex; justify-content: space-between; align-items: center; padding: 15px; background: linear-gradient(135deg, #500, #200); border: 1px solid #e74c3c; }
+        .game-thumb { height: 75px; background: #0a2026; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #fff; padding: 5px; }
+        .game-tag { font-size: 9px; padding: 2px 6px; background: rgba(0,0,0,0.6); color: #f1c40f; position: absolute; top: 4px; right: 4px; border-radius: 3px; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: #06151a; display: flex; justify-content: space-around; padding: 8px 0; border-top: 1px solid #10333d; z-index: 100; }
+        .nav-item { text-align: center; color: #78909c; font-size: 10px; cursor: pointer; }
+        .nav-item.active { color: #f1c40f; }
+        .nav-item div { font-size: 16px; margin-bottom: 2px; }
+
+        .screen-view { padding: 15px; display: none; }
+        .screen-view.active { display: block; }
+        .input-group { margin-bottom: 10px; text-align: left; }
+        .input-group label { display: block; font-size: 11px; color: #aaa; margin-bottom: 3px; }
+        input, select { width: 100%; padding: 8px 10px; background: #07171c; border: 1px solid #163842; border-radius: 6px; color: #fff; font-size: 12px; outline: none; }
+        .primary-btn { width: 100%; padding: 10px; background: #00d2d3; color: #000; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 5px; }
+        .hidden { display: none !important; }
+        
+        .game-arena { background: #000; border-radius: 10px; padding: 15px; border: 1px solid #1abc9c; text-align: center; }
+        .arena-screen { background: radial-gradient(circle, #10333d, #000); height: 180px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1px solid #163842; margin-bottom: 12px; }
+        .arena-display { font-size: 28px; font-weight: 900; color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.6); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- TOP HEADER -->
+        <div class="top-header">
+            <div class="logo-area">
+                <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+                🔥 WIZAA
+            </div>
+            <div class="header-btns" id="authHeaderBtns">
+                <button class="login-btn" onclick="openModal('loginModal')">Log In</button>
+                <button class="signup-btn" onclick="openModal('signupModal')">Sign Up</button>
+            </div>
+            <div id="userWalletHeader" class="hidden" style="font-size:11px; color:#f1c40f; font-weight:bold;">
+                💰 Cash: <span id="hdrWalletBal">Rs.0</span> | 🎁 Bonus: <span id="hdrBonusBal" style="color:#2ecc71;">Rs.0</span> <span onclick="logoutUser()" style="color:#e74c3c; cursor:pointer; margin-left:4px;">[Logout]</span>
+            </div>
+        </div>
+
+        <!-- SIDEBAR MENU -->
+        <div class="backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+        <div class="sidebar-menu" id="sidebarMenu">
+            <div class="sidebar-header">
+                <span style="color:#f1c40f; font-weight:bold; font-size:16px;">🔥 WINZAA</span>
+                <span style="cursor:pointer; color:#aaa; font-size:18px;" onclick="toggleSidebar()">✕</span>
+            </div>
+            <div class="sidebar-gift-card">🎁 200 WINZAA.ME WELCOME GIFT</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('homeScreen')">🎰 Slots Games</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('homeScreen')">🃏 Casino Tables</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); openGameWindow('aviator')">✈️ Crash (Aviator)</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('promoScreen')">🎁 Promotions</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('rankingScreen')">🏆 Jackpot Ranking</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('spinScreen')">🎡 Lucky Wheel</div>
+            <div class="sidebar-item" onclick="toggleSidebar(); switchTab('accountScreen')">👤 My Account</div>
+        </div>
+
+        <!-- MAIN HOME SCREEN -->
+        <div id="homeScreen" class="screen-view active">
+            <div class="promo-banner" onclick="switchTab('promoScreen')">
+                <div class="promo-text">
+                    <h3>FIRST DEPOSIT</h3>
+                    <h1>UP TO 100% CASHBACK</h1>
+                    <p>WINZAA.ME (Click to Deposit)</p>
+                </div>
+                <div style="font-size:35px;">🎁</div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Search Games...">
+            </div>
+
+            <div class="section-title"><span>🚀 Crash Games</span></div>
+            <div class="games-section">
+                <div class="games-grid">
+                    <div class="game-card game-card-wide" onclick="openGameWindow('aviator')">
+                        <div style="text-align: left;">
+                            <h2 style="color:#ff7675; font-size:18px;">AVIATOR</h2>
+                            <p style="font-size:10px; color:#aaa;">SPRIBE 60% PROFIT ENGINE</p>
+                        </div>
+                        <div style="font-size:30px;">✈️</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title"><span>🎰 Slots Games</span></div>
+            <div class="games-section">
+                <div class="games-grid">
+                    <div class="game-card" onclick="openGameWindow('garuda')"><div class="game-thumb" style="background:#b7950b;">🦅 Garuda</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('pappu')"><div class="game-thumb" style="background:#2471a3;">🕊️ Pappu</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('piggy')"><div class="game-thumb" style="background:#c0392b;">🐷 Piggy</div><div class="game-tag">JDB</div></div>
+                    <div class="game-card" onclick="openGameWindow('gems3')"><div class="game-thumb" style="background:#d68910;">💎 Gems 3</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('moneycoming')"><div class="game-thumb" style="background:#27ae60;">💵 Money</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('crazy777')"><div class="game-thumb" style="background:#8e44ad;">7️⃣ 777</div><div class="game-tag">JILI</div></div>
+                </div>
+            </div>
+
+            <div class="section-title"><span>🃏 Casino & Table Games</span></div>
+            <div class="games-section">
+                <div class="games-grid">
+                    <div class="game-card" onclick="openGameWindow('roulette')"><div class="game-thumb" style="background:#cb4335;">🎯 Roulette</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('sicbo')"><div class="game-thumb" style="background:#2e4053;">🎲 Sic Bo</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('andarbahar')"><div class="game-thumb" style="background:#117864;">🃏 Andar</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('rummy')"><div class="game-thumb" style="background:#7d3c98;">🎴 Rummy</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('dragontiger')"><div class="game-thumb" style="background:#b9770e;">🐅 Tiger</div><div class="game-tag">JILI</div></div>
+                    <div class="game-card" onclick="openGameWindow('colorgame')"><div class="game-thumb" style="background:#2874a6;">🎨 Color</div><div class="game-tag">JILI</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME ARENA SCREEN -->
+        <div id="gameArenaScreen" class="screen-view">
+            <button style="width:auto; padding:4px 10px; font-size:11px; margin-bottom:8px; background:#444;" onclick="switchTab('homeScreen')">⬅ Back to Lobby</button>
+            <div class="game-arena">
+                <h3 id="activeGameTitle" style="color:#f1c40f; margin-bottom:10px;">Game Window</h3>
+                <div class="arena-screen">
+                    <div class="arena-display" id="arenaResultDisplay">READY</div>
+                    <div style="font-size:11px; color:#aaa; margin-top:6px;" id="arenaStatusMsg">Place your bet & play!</div>
+                </div>
+                <div class="input-group">
+                    <label>Bet Amount (Uses Bonus Balance first)</label>
+                    <input type="number" id="gameBetInput" value="50">
+                </div>
+                <button class="primary-btn" id="playGameBtn" onclick="executeGameRound()">PLAY ROUND</button>
+            </div>
+        </div>
+
+        <!-- PROMO SCREEN -->
+        <div id="promoScreen" class="screen-view">
+            <h3 style="color:#f1c40f; margin-bottom:12px;">Promotion</h3>
+            <div class="promo-banner" style="margin:0 0 12px 0;">
+                <div class="promo-text">
+                    <h3>SIGN UP & GET</h3>
+                    <h1>₹ 200 Welcome Bonus</h1>
+                    <p>Free bonus added on registration</p>
+                </div>
+            </div>
+            <div class="promo-banner" style="margin:0;">
+                <div class="promo-text">
+                    <h3>First Deposit</h3>
+                    <h1>100% CashBack Bonus</h1>
+                    <p>Deposit Rs.200, Get Rs.200 Bonus Added</p>
+                </div>
+                <button class="promo-btn-action" style="padding:6px 12px; background:#f39c12; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="openModal('depositModal')">Deposit Now</button>
+            </div>
+        </div>
+
+        <!-- RANKING SCREEN -->
+        <div id="rankingScreen" class="screen-view">
+            <h3 style="color:#f1c40f; margin-bottom:10px;">🏆 Jackpot Ranking</h3>
+            <div id="winnerBoardBox" style="background:#07171c; padding:10px; border-radius:8px; font-size:12px;">
+                🏆 Winner Announcement: Loading...
+            </div>
+        </div>
+
+        <!-- SPIN SCREEN -->
+        <div id="spinScreen" class="screen-view" style="text-align:center;">
+            <h3 style="color:#f1c40f; margin-bottom:15px;">🎡 Lucky Fortune Wheel</h3>
+            <div style="font-size:50px; margin:15px 0;" id="spinWheelIcon">🎯</div>
+            <div style="font-size:14px; color:#2ecc71; margin-bottom:15px; font-weight:bold;" id="spinResultText">Spin karke Bonus jeetein!</div>
+            <button class="primary-btn" onclick="executeLuckySpin()">SPIN NOW (FREE)</button>
+        </div>
+
+        <!-- ACCOUNT SCREEN -->
+        <div id="accountScreen" class="screen-view">
+            <h3 style="color:#f1c40f; margin-bottom:10px;">👤 My Account & Wallet</h3>
+            <div style="background:#07171c; padding:12px; border-radius:8px; margin-bottom:10px; font-size:12px;">
+                <p style="color:#aaa; margin-bottom:4px;">Real Cash Balance: <strong style="color:#f1c40f;" id="accCashBalance">Rs. 0</strong></p>
+                <p style="color:#aaa;">Play Bonus Balance (Non-Withdrawal): <strong style="color:#2ecc71;" id="accBonusBalance">Rs. 0</strong></p>
+            </div>
+            <button class="primary-btn" style="background:#27ae60;" onclick="openModal('depositModal')">Deposit Money</button>
+            <button class="primary-btn" style="background:#e67e22; margin-top:8px;" onclick="openModal('withdrawModal')">Withdraw Money (Cash Only)</button>
+            
+            <div id="adminManagementDiv" class="hidden" style="margin-top:15px; border-top:1px dashed #e74c3c; padding-top:10px;">
+                <h4 style="color:#e74c3c; font-size:13px; margin-bottom:6px;">👑 Admin Control (Pending Deposits)</h4>
+                <div id="adminDepositContainer" style="font-size:11px; color:#aaa; max-height:100px; overflow-y:auto;">Loading...</div>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAV BAR -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('homeScreen'); setActiveNav(this);"><div>🏠</div>Home</div>
+            <div class="nav-item" onclick="switchTab('promoScreen'); setActiveNav(this);"><div>🎁</div>Promo</div>
+            <div class="nav-item" onclick="switchTab('rankingScreen'); setActiveNav(this);"><div>👑</div>Ranking</div>
+            <div class="nav-item" onclick="switchTab('spinScreen'); setActiveNav(this);"><div>🎡</div>Spin</div>
+            <div class="nav-item" onclick="switchTab('accountScreen'); setActiveNav(this);"><div>👤</div>Account</div>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
+        <h3>Log In (Mobile ya Gmail se)</h3>
+        <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Udaharan: <b>9876543210</b> ya <b>amit@gmail.com</b></p>
+        <div class="input-group"><label>Mobile No / Gmail ID</label><input type="text" id="loginInput" placeholder="9876543210"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Password"></div>
+        <button class="primary-btn" onclick="userLogin()">Login</button>
+        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('loginModal')">Close</button>
+    </div>
+
+    <!-- SIGNUP MODAL -->
+    <div id="signupModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
+        <h3>Sign Up (Naya Khata Banayein - ₹200 Bonus)</h3>
+        <p style="font-size:11px; color:#f1c40f; margin-bottom:10px; background:#07171c; padding:8px; border-radius:4px; border:1px solid #163842;">
+            💡 <b>Udaharan (Example):</b><br>
+            • Mobile se: <b>9876543210</b><br>
+            • Gmail se: <b>amit123@gmail.com</b>
+        </p>
+        <div class="input-group"><label>Mobile No ya Gmail ID</label><input type="text" id="signupInput" placeholder="9876543210 ya user@gmail.com"></div>
+        <div class="input-group"><label>Password Banayein</label><input type="password" id="signupPassword" placeholder="Strong password"></div>
+        <button class="primary-btn" onclick="userSignup()">Register & Get Bonus</button>
+        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('signupModal')">Close</button>
+    </div>
+
+    <!-- DEPOSIT MODAL -->
+    <div id="depositModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
+        <h3>Deposit Funds (100% Bonus Added)</h3>
+        <div class="input-group" style="margin-top:15px;"><label>Name</label><input type="text" id="depName"></div>
+        <div class="input-group"><label>Amount (e.g. 200)</label><input type="number" id="depAmt"></div>
+        <div class="input-group"><label>UPI Ref / ID</label><input type="text" id="depUpi"></div>
+        <button class="primary-btn" onclick="submitDeposit()">Submit Deposit</button>
+        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('depositModal')">Close</button>
+    </div>
+
+    <!-- WITHDRAW MODAL -->
+    <div id="withdrawModal" class="screen-view hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; padding:30px;">
+        <h3>Withdraw Funds (Cash Only)</h3>
+        <div class="input-group" style="margin-top:15px;"><label>Amount (Min 200)</label><input type="number" id="withAmt"></div>
+        <div class="input-group"><label>UPI Details</label><input type="text" id="withDetails"></div>
+        <button class="primary-btn" onclick="submitWithdraw()">Request Withdraw</button>
+        <button class="primary-btn" style="background:#444; margin-top:8px;" onclick="closeModal('withdrawModal')">Close</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7TFkHZqLgjRnrZ3xm94p8nfqt3i_n0Z4",
+            authDomain: "mylotteryapp-9428b.firebaseapp.com",
+            projectId: "mylotteryapp-9428b",
+            storageBucket: "mylotteryapp-9428b.firebasestorage.app",
+            messagingSenderId: "837980081277",
+            appId: "1:837980081277:web:9c1e50592c3e974b97f514"
+        };
+
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.database();
+        let currentUid = "", currentUserIdentifier = "", currentGameName = "";
+        const MASTER_ADMIN = "9876543210";
+
+        function toggleSidebar() {
+            document.getElementById('sidebarMenu').classList.toggle('open');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function switchTab(screenId) {
+            document.querySelectorAll('.screen-view').forEach(el => {
+                if(!el.id.includes('Modal')) el.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function setActiveNav(element) {
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        function getValidEmail(inputVal) {
+            let cleanVal = inputVal.trim();
+            if(/^\d{10}$/.test(cleanVal)) { return cleanVal + "@winzaa.phone"; }
+            return cleanVal;
+        }
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if(user) {
+                currentUid = user.uid;
+                currentUserIdentifier = user.email.includes('@winzaa.phone') ? user.email.split('@')[0] : user.email;
+                document.getElementById('authHeaderBtns').classList.add('hidden');
+                document.getElementById('userWalletHeader').classList.remove('hidden');
+                loadWallet(currentUid);
+                checkAdminStatus(currentUserIdentifier);
+            } else {
+                currentUid = ""; currentUserIdentifier = "";
+                document.getElementById('authHeaderBtns').classList.remove('hidden');
+                document.getElementById('userWalletHeader').classList.add('hidden');
+                document.getElementById('adminManagementDiv').classList.add('hidden');
+            }
+            loadWinnerAnnouncement();
+        });
+
+        function userLogin() {
+            let inputVal = document.getElementById('loginInput').value.trim();
+            let pass = document.getElementById('loginPassword').value.trim();
+            if(!inputVal || !pass) { alert('Kripya mobile number ya gmail aur password bharein!'); return; }
+            let authEmail = getValidEmail(inputVal);
+            firebase.auth().signInWithEmailAndPassword(authEmail, pass).then(() => {
+                closeModal('loginModal');
+                alert('Login safal raha!');
+            }).catch(err => alert('Login Error: ' + err.message));
+        }
+
+        function userSignup() {
+            let inputVal = document.getElementById('signupInput').value.trim();
+            let pass = document.getElementById('signupPassword').value.trim();
+            if(!inputVal || !pass) { alert('Kripya mobile number ya gmail aur password bharein!'); return; }
+            let authEmail = getValidEmail(inputVal);
+            firebase.auth().createUserWithEmailAndPassword(authEmail, pass).then((res) => {
+                db.ref('wallets/' + res.user.uid).set({ cash: 0, bonus: 200, identifier: inputVal });
+                closeModal('signupModal');
+                alert('Account ban gaya! Aapko ₹200 Welcome Bonus mila hai.');
+            }).catch(err => alert('Signup Error: ' + err.message));
+        }
+
+        function logoutUser() { firebase.auth().signOut(); }
+
+        function loadWallet(uid) {
+            db.ref('wallets/' + uid).on('value', (snap) => {
+                let data = snap.val() || { cash: 0, bonus: 0 };
+                let cash = data.cash || 0;
+                let bonus = data.bonus || 0;
+                document.getElementById('hdrWalletBal').innerText = "Rs." + cash;
+                document.getElementById('hdrBonusBal').innerText = "Rs." + bonus;
+                document.getElementById('accCashBalance').innerText = "Rs." + cash;
+                document.getElementById('accBonusBalance').innerText = "Rs." + bonus;
+            });
+        }
+
+        function checkAdminStatus(identifier) {
+            if(identifier.toLowerCase() === MASTER_ADMIN.toLowerCase()) {
+                document.getElementById('adminManagementDiv').classList.remove('hidden');
+                loadAdminDeposits();
+            } else {
+                db.ref('admins').orderByChild('identifier').equalTo(identifier).once('value', (snap) => {
+                    if(snap.exists()) {
+                        document.getElementById('adminManagementDiv').classList.remove('hidden');
+                        loadAdminDeposits();
+                    } else {
+                        document.getElementById('adminManagementDiv').classList.add('hidden');
+                    }
+                });
+            }
+        }
+
+        function loadAdminDeposits() {
+            db.ref('depositRequests').on('value', (snap) => {
+                let container = document.getElementById('adminDepositContainer');
+                container.innerHTML = "";
+                let data = snap.val();
+                if(data) {
+                    for(let k in data) {
+                        container.innerHTML += `<div style="background:#111; padding:6px; margin-bottom:4px; border-radius:4px;">
+                            ${data[k].name} - Rs.${data[k].amount} (UPI: ${data[k].upiRef})<br>
+                            <button onclick="approveDeposit('${k}', '${data[k].userId}', ${data[k].amount})" style="background:#27ae60; color:#fff; border:none; padding:2px 6px; border-radius:3px; margin-top:2px; cursor:pointer;">Approve & 100% Bonus</button>
+                        </div>`;
+                    }
+                } else {
+                    container.innerHTML = "Koi deposit request nahi hai.";
+                }
+            });
+        }
+
+        function approveDeposit(reqKey, targetUserId, amount) {
+            db.ref('wallets/' + targetUserId).once('value', (snap) => {
+                let data = snap.val() || { cash: 0, bonus: 0 };
+                let currentCash = data.cash || 0;
+                let currentBonus = data.bonus || 0;
+                
+                let addedBonus = amount; 
+                db.ref('wallets/' + targetUserId).update({
+                    cash: currentCash + amount,
+                    bonus: currentBonus + addedBonus
+                }).then(() => {
+                    db.ref('depositRequests').child(reqKey).remove();
+                    alert('Deposit approve ho gaya aur 100% bonus add kar diya gaya!');
+                });
+            });
+        }
+
+        function submitDeposit() {
+            let name = document.getElementById('depName').value;
+            let amt = Number(document.getElementById('depAmt').value);
+            let upi = document.getElementById('depUpi').value;
+            if(!name || !amt || !upi) { alert('Sabhi fields bharein!'); return; }
+            db.ref('depositRequests').push().set({ userId: currentUid, identifier: currentUserIdentifier, name, amount: amt, upiRef: upi });
+            alert('Deposit request bhej di gayi hai! Admin approval ke baad cash aur 100% bonus mil jayega.');
+            closeModal('depositModal');
+        }
+
+        function submitWithdraw() {
+            let amt = Number(document.getElementById('withAmt').value);
+            let details = document.getElementById('withDetails').value;
+            if(amt < 200) { alert('Minimum withdrawal Rs. 200 hai!'); return; }
+            db.ref('wallets/' + currentUid).once('value', (snap) => {
+                let data = snap.val() || { cash: 0 };
+                let cashBal = data.cash || 0;
+                if(cashBal < amt) { alert('Real cash balance kam hai! Bonus withdraw nahi ho sakta.'); return; }
+                db.ref('wallets/' + currentUid).update({ cash: cashBal - amt });
+                db.ref('withdrawRequests').push().set({ userId: currentUid, identifier: currentUserIdentifier, amount: amt, details });
+                alert('Withdrawal request bhej di gayi hai!');
+                closeModal('withdrawModal');
+            });
+        }
+
+        function executeLuckySpin() {
+            if(!currentUid) { alert('Pehle login karein!'); openModal('loginModal'); return; }
+            
+            let rewards = [50, 100, 150, 200, 500];
+            let wonBonus = rewards[Math.floor(Math.random() * rewards.length)];
+
+            db.ref('wallets/' + currentUid).once('value', (snap) => {
+                let data = snap.val() || { cash: 0, bonus: 0 };
+                let currentBonus = data.bonus || 0;
+                
+                db.ref('wallets/' + currentUid).update({ bonus: currentBonus + wonBonus }).then(() => {
+                    document.getElementById('spinResultText').innerText = "Badhai ho! Aapne jeeta: Rs. " + wonBonus + " Bonus!";
+                    alert('Spin complete! Rs. ' + wonBonus + ' Bonus aapke account me jud gaya hai.');
+                });
+            });
+        }
+
+        function loadWinnerAnnouncement() {
+            db.ref('announcement/winner').on('value', (snap) => {
+                let txt = snap.val() || "🏆 Winner: Announce hone wala hai...";
+                document.getElementById('winnerBoardBox').innerText = txt;
+            });
+        }
+
+        function openGameWindow(gameKey) {
+            if(!currentUid) { alert('Pehle login karein!'); openModal('loginModal'); return; }
+            currentGameName = gameKey;
+            document.getElementById('activeGameTitle').innerText = gameKey.toUpperCase() + " ARENA";
+            document.getElementById('arenaResultDisplay').innerText = "READY TO PLAY";
+            document.getElementById('arenaStatusMsg').innerText = "Place bet & click play!";
+            switchTab('gameArenaScreen');
+        }
+
+        function executeGameRound() {
+            let betAmt = Number(document.getElementById('gameBetInput').value);
+            if(betAmt <= 0) { alert('Sahi bet amount dalein!'); return; }
+
+            db.ref('wallets/' + currentUid).once('value', (snap) => {
+                let data = snap.val() || { cash: 0, bonus: 0 };
+                let cash = data.cash || 0;
+                let bonus = data.bonus || 0;
+                let totalBal = cash + bonus;
+
+                if(totalBal < betAmt) { alert('Balance kam hai!'); return; }
+
+                let newBonus = bonus, newCash = cash;
+                if(bonus >= betAmt) {
+                    newBonus -= betAmt;
+                } else {
+                    let remainder = betAmt - bonus;
+                    newBonus = 0;
+                    newCash -= remainder;
+                }
+
+                let rand = Math.random();
+                let isWin = rand > 0.60; 
+                let winnings = 0;
+
+                if(isWin) {
+                    let multiplier = 1.5 + Math.random() * 1.5;
+                    winnings = Math.floor(betAmt * multiplier);
+                    newCash += winnings; 
+                    document.getElementById('arenaResultDisplay').innerText = "YOU WON ₹" + winnings + " (" + multiplier.toFixed(2) + "x)";
+                    document.getElementById('arenaStatusMsg').innerText = "Shandar jeet! Cash me add ho gaya.";
+                } else {
+                    document.getElementById('arenaResultDisplay').innerText = "LOST ROUND";
+                    document.getElementById('arenaStatusMsg').innerText = "Kismat kharab thi, agli baar jeetoge!";
+                }
+
+                db.ref('wallets/' + currentUid).update({ cash: newCash, bonus: newBonus });
+            });
+        }
+    </script>
+</body>
+</html>
